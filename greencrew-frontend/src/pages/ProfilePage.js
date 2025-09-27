@@ -4,13 +4,21 @@ import { useAuth } from "../context/AuthContext";
 export default function ProfilePage() {
   const { token } = useAuth();
   const [profile, setProfile] = useState({});
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
+    setLoading(true);
     fetch(`${process.env.REACT_APP_API_BASE_URL}/auth/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
-      .then((json) => setProfile(json.player || {}));
+      .then((json) => {
+        setProfile(json.player || {});
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [token]);
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
