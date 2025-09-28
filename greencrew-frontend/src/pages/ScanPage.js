@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 // --- Dynamic, Categorized Result Card ---
 const formatKey = (key) =>
@@ -198,80 +200,364 @@ const ErrorResultCard = ({ error, result }) => (
 
 const ResultCard = ({ result, scanSuccess, error }) => {
   if (!scanSuccess) {
-    // Show error card ONLY if scan failed
     return <ErrorResultCard error={error} result={result} />;
   }
   if (!result || typeof result !== "object") return null;
-  const categories = categorizeKeys(result);
+
+  // Extract key information for better display
+  const objectInfo = result.object || {};
+  const priceInfo = result.price || {};
+  const envInfo = result.environmental || {};
 
   return (
     <div style={{
-      maxWidth: '1400px',
+      maxWidth: '1200px',
       margin: '40px auto',
-      padding: '0 20px',
-      textAlign: 'center'
+      padding: '0 20px'
     }}>
+      {/* Main Detection Result */}
       <div style={{
+        backgroundColor: '#1f2937',
+        borderRadius: '20px',
+        padding: '40px',
+        marginBottom: '30px',
         textAlign: 'center',
-        marginBottom: '40px'
+        border: '2px solid #10b981',
+        boxShadow: '0 0 30px rgba(16, 185, 129, 0.3)'
       }}>
-        <h2 style={{
-          fontSize: '36px',
-          fontWeight: 'bold',
-          color: '#1f2937',
-          marginBottom: '16px',
-          textAlign: 'center'
-        }}>Scan Results</h2>
         <div style={{
-          width: '100px',
-          height: '4px',
-          backgroundColor: '#3b82f6',
-          margin: '0 auto',
-          borderRadius: '2px'
-        }}></div>
+          fontSize: '60px',
+          marginBottom: '20px'
+        }}>
+          {getItemEmoji(objectInfo.class)}
+        </div>
+        <h2 style={{
+          fontSize: '32px',
+          fontWeight: 'bold',
+          color: '#10b981',
+          marginBottom: '10px',
+          textTransform: 'capitalize'
+        }}>
+          {objectInfo.name || objectInfo.class || 'Unknown Object'}
+        </h2>
+        <div style={{
+          fontSize: '18px',
+          color: '#9ca3af',
+          marginBottom: '20px'
+        }}>
+          Confidence: <span style={{ color: '#10b981', fontWeight: 'bold' }}>
+            {objectInfo.confidence}%
+          </span>
+        </div>
+        <div style={{
+          display: 'inline-block',
+          backgroundColor: objectInfo.confidence >= 80 ? '#10b981' : objectInfo.confidence >= 60 ? '#f59e0b' : '#ef4444',
+          color: 'white',
+          padding: '8px 20px',
+          borderRadius: '25px',
+          fontSize: '14px',
+          fontWeight: 'bold'
+        }}>
+          {objectInfo.confidence >= 80 ? '✓ High Confidence' :
+           objectInfo.confidence >= 60 ? '⚠ Medium Confidence' :
+           '⚠ Low Confidence'}
+        </div>
       </div>
+
+      {/* Information Cards Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
         gap: '24px',
-        alignItems: 'start',
-        justifyItems: 'center'
+        marginBottom: '30px'
       }}>
-        {Object.entries(categories).map(([cat, data]) => (
-          <CategoryCard key={cat} title={cat} data={data} />
-        ))}
+
+        {/* Environmental Impact Card */}
+        {envInfo && (
+          <div style={{
+            backgroundColor: '#065f46',
+            borderRadius: '16px',
+            padding: '24px',
+            color: 'white'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              <span style={{ fontSize: '24px', marginRight: '12px' }}>🌍</span>
+              <h3 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>
+                Environmental Impact
+              </h3>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '14px', color: '#a7f3d0', marginBottom: '4px' }}>
+                CO₂ You Can Save
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
+                {envInfo.carbonSaved || 0} kg
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '14px', color: '#a7f3d0', marginBottom: '4px' }}>
+                Recyclable
+              </div>
+              <div style={{
+                display: 'inline-block',
+                backgroundColor: envInfo.recyclable ? '#10b981' : '#ef4444',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}>
+                {envInfo.recyclable ? '✓ Yes' : '✗ No'}
+              </div>
+            </div>
+
+            {envInfo.actionScore && (
+              <div>
+                <div style={{ fontSize: '14px', color: '#a7f3d0', marginBottom: '8px' }}>
+                  Environmental Score
+                </div>
+                <div style={{
+                  backgroundColor: '#134e4a',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    width: `${envInfo.actionScore}%`,
+                    height: '8px',
+                    backgroundColor: envInfo.actionScore >= 80 ? '#10b981' : envInfo.actionScore >= 60 ? '#f59e0b' : '#ef4444',
+                    borderRadius: '4px',
+                    transition: 'width 1s ease'
+                  }}></div>
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: '12px',
+                    transform: 'translateY(-50%)',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}>
+                    {envInfo.actionScore}/100
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Price Information Card */}
+        {priceInfo && (
+          <div style={{
+            backgroundColor: '#1e40af',
+            borderRadius: '16px',
+            padding: '24px',
+            color: 'white'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              <span style={{ fontSize: '24px', marginRight: '12px' }}>💰</span>
+              <h3 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>
+                Estimated Value
+              </h3>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '14px', color: '#bfdbfe', marginBottom: '4px' }}>
+                Resale Value
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#3b82f6' }}>
+                ${priceInfo.estimated || 0}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '14px', color: '#bfdbfe', marginBottom: '4px' }}>
+                Price Confidence
+              </div>
+              <div style={{
+                display: 'inline-block',
+                backgroundColor: '#1e3a8a',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textTransform: 'capitalize'
+              }}>
+                {priceInfo.confidence_level || priceInfo.confidence || 'Medium'}
+              </div>
+            </div>
+
+            {priceInfo.breakdown && (
+              <div style={{
+                backgroundColor: '#1e3a8a',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '12px'
+              }}>
+                <div style={{ marginBottom: '4px' }}>
+                  Category: <span style={{ color: '#bfdbfe' }}>
+                    {priceInfo.breakdown.category || 'General'}
+                  </span>
+                </div>
+                <div>
+                  Condition: <span style={{ color: '#bfdbfe' }}>
+                    {priceInfo.breakdown.condition || 'Good'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Action Suggestions Card */}
+        <div style={{
+          backgroundColor: '#7c2d12',
+          borderRadius: '16px',
+          padding: '24px',
+          color: 'white'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '20px'
+          }}>
+            <span style={{ fontSize: '24px', marginRight: '12px' }}>💡</span>
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>
+              What You Can Do
+            </h3>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '8px',
+              padding: '8px',
+              backgroundColor: '#92400e',
+              borderRadius: '8px'
+            }}>
+              <span style={{ marginRight: '8px' }}>♻️</span>
+              <span>Recycle for maximum environmental impact</span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '8px',
+              padding: '8px',
+              backgroundColor: '#92400e',
+              borderRadius: '8px'
+            }}>
+              <span style={{ marginRight: '8px' }}>💵</span>
+              <span>Sell for ${priceInfo.estimated || 0} estimated value</span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '8px',
+              backgroundColor: '#92400e',
+              borderRadius: '8px'
+            }}>
+              <span style={{ marginRight: '8px' }}>❤️</span>
+              <span>Donate to help your community</span>
+            </div>
+          </div>
+
+          {envInfo.recommendations && envInfo.recommendations.length > 0 && (
+            <div>
+              <div style={{ fontSize: '14px', color: '#fed7aa', marginBottom: '8px' }}>
+                💭 Expert Tips:
+              </div>
+              {envInfo.recommendations.slice(0, 2).map((rec, idx) => (
+                <div key={idx} style={{
+                  fontSize: '12px',
+                  padding: '6px 8px',
+                  backgroundColor: '#92400e',
+                  borderRadius: '6px',
+                  marginBottom: '4px'
+                }}>
+                  {rec}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
+// Helper function to get emoji for different object types
+const getItemEmoji = (className) => {
+  const emojiMap = {
+    'bottle': '🍶',
+    'cup': '☕',
+    'wine glass': '🍷',
+    'cell phone': '📱',
+    'laptop': '💻',
+    'book': '📚',
+    'chair': '🪑',
+    'couch': '🛋️',
+    'bicycle': '🚲',
+    'car': '🚗',
+    'truck': '🚚',
+    'bus': '🚌',
+    'sports ball': '⚽',
+    'backpack': '🎒',
+    'handbag': '👜',
+    'suitcase': '🧳',
+    'tv': '📺',
+    'microwave': '⏰',
+    'toaster': '🍞',
+    'refrigerator': '🧊',
+    'keyboard': '⌨️',
+    'mouse': '🖱️',
+    'remote': '📱',
+    'scissors': '✂️',
+    'hair drier': '💨',
+    'toothbrush': '🦷'
+  };
+
+  return emojiMap[className?.toLowerCase()] || '📦';
+};
+
 export default function ScanPage() {
   const { token, refreshUser } = useAuth();
+  const navigate = useNavigate();
   const [result, setResult] = useState(null);
   const [scanSuccess, setScanSuccess] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [stream, setStream] = useState(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [facingMode, setFacingMode] = useState('environment');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionFeedback, setActionFeedback] = useState("");
   const [actionResult, setActionResult] = useState(null);
   const [actionDone, setActionDone] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Start camera
-  const startCamera = async () => {
+  const startCamera = async (mode = facingMode) => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 } }
       });
       setStream(mediaStream);
       if (videoRef.current) videoRef.current.srcObject = mediaStream;
       setIsCameraActive(true);
       setError("");
     } catch (err) {
-      setError("Cannot access camera. Please allow camera permissions.");
+      setError("Cannot access camera. Please allow camera permissions or use Upload Image.");
       console.error("Camera access error:", err);
     }
   };
@@ -326,18 +612,80 @@ export default function ScanPage() {
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       const data = await res.json();
+      console.log("Scan response:", data); // Debug log
+
       setScanSuccess(data.success);
-      setResult(data.result || data.error || data);
-      setError(data.success ? "" : data.error || "Scan failed.");
+
+      if (data.success) {
+        setResult(data.result);
+        setError("");
+      } else {
+        setResult(data.result || null);
+        setError(data.error || data.message || "Scan failed.");
+      }
+
       setActionFeedback("");
       setActionResult(null);
     } catch (err) {
-      setError("Scan failed.");
-      setScanSuccess(false);
       console.error("Scan error:", err);
+      setError(`Network error: ${err.message}. Please check if the backend is running.`);
+      setScanSuccess(false);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle upload-based scan
+  const handleUploadScan = async (file) => {
+    if (!file) return;
+    setError("");
+    setLoading(true);
+    setResult(null);
+    setActionDone(false);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/scan`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data = await res.json();
+      setScanSuccess(data.success);
+      if (data.success) {
+        setResult(data.result);
+        setError("");
+      } else {
+        setResult(data.result || null);
+        setError(data.error || data.message || "Scan failed.");
+      }
+      setActionFeedback("");
+      setActionResult(null);
+    } catch (err) {
+      console.error("Upload scan error:", err);
+      setError(`Upload error: ${err.message}. Please verify the image and backend.`);
+      setScanSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Switch camera between front/back
+  const toggleCameraFacing = async () => {
+    const next = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(next);
+    if (isCameraActive) {
+      stopCamera();
+      await startCamera(next);
     }
   };
 
@@ -360,10 +708,17 @@ export default function ScanPage() {
           scanResult: result,
         }),
       });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       const data = await res.json();
+      console.log("Action response:", data); // Debug log
+
       if (data.success) {
         setActionFeedback(
-          `Action: ${actionType.charAt(0).toUpperCase() + actionType.slice(1)} successful! Points earned: ${data.pointsEarned}. XP: ${data.playerState.xp}. Level: ${data.playerState.level}`
+          `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} successful! Points earned: ${data.pointsEarned}. XP: ${data.playerState?.xp || 'N/A'}. Level: ${data.playerState?.level || 'N/A'}`
         );
         setActionResult(data.playerState);
         setActionDone(true); // Disable buttons after first successful action
@@ -372,8 +727,8 @@ export default function ScanPage() {
         setActionFeedback(data.error || "Action failed.");
       }
     } catch (err) {
-      setActionFeedback("Action failed (network or server error).");
       console.error("Action error:", err);
+      setActionFeedback(`Action failed: ${err.message}. Please check if the backend is running.`);
     } finally {
       setActionLoading(false);
     }
@@ -386,32 +741,112 @@ export default function ScanPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#f8fafc',
+      background: 'linear-gradient(135deg, #1a2f1a 0%, #0f1f0f 50%, #1a2f1a 100%)',
       padding: '20px',
-      textAlign: 'center'
+      textAlign: 'center',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {/* Environmental Background Pattern */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23527a52' fill-opacity='0.08'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        opacity: 0.6
+      }} />
+
+      {/* Ambient Glows */}
+      <div style={{
+        position: 'absolute',
+        top: '20%',
+        left: '10%',
+        width: '200px',
+        height: '200px',
+        background: 'radial-gradient(circle, rgba(82, 122, 82, 0.12) 0%, transparent 70%)',
+        borderRadius: '50%',
+        filter: 'blur(40px)',
+        animation: 'float 8s ease-in-out infinite'
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '20%',
+        right: '10%',
+        width: '150px',
+        height: '150px',
+        background: 'radial-gradient(circle, rgba(139, 154, 139, 0.1) 0%, transparent 70%)',
+        borderRadius: '50%',
+        filter: 'blur(30px)',
+        animation: 'float 6s ease-in-out infinite reverse'
+      }} />
+
       {/* Header */}
       <div style={{
         textAlign: 'center',
-        marginBottom: '40px',
-        padding: '40px 0'
+        marginBottom: '60px',
+        padding: '60px 0 40px',
+        position: 'relative',
+        zIndex: 10
       }}>
-        <h1 style={{
-          fontSize: '48px',
-          fontWeight: 'bold',
-          color: '#1f2937',
-          marginBottom: '16px',
-          textAlign: 'center'
-        }}>AI Object Scanner</h1>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '32px',
+          position: 'relative'
+        }}>
+          <button
+            onClick={() => navigate('/dashboard')}
+            style={{
+              position: 'absolute',
+              left: 0,
+              background: 'rgba(82, 122, 82, 0.2)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(143, 188, 143, 0.3)',
+              borderRadius: '12px',
+              padding: '16px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: '14px',
+              fontWeight: '500',
+              gap: '8px',
+              color: '#8fbc8f',
+              fontFamily: 'Inter, system-ui, sans-serif',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(82, 122, 82, 0.3)';
+              e.target.style.borderColor = 'rgba(143, 188, 143, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'rgba(82, 122, 82, 0.2)';
+              e.target.style.borderColor = 'rgba(143, 188, 143, 0.3)';
+            }}
+          >
+            <ArrowLeft size={18} />
+            Back
+          </button>
+          <h1 style={{
+            fontSize: '3.5rem',
+            fontWeight: '300',
+            color: '#8fbc8f',
+            textAlign: 'center',
+            margin: 0,
+            fontFamily: 'Inter, system-ui, sans-serif',
+            letterSpacing: '0.02em'
+          }}>Environmental Scanner</h1>
+        </div>
         <p style={{
-          fontSize: '20px',
-          color: '#6b7280',
+          fontSize: '1.25rem',
+          color: 'rgba(143, 188, 143, 0.8)',
           maxWidth: '600px',
           margin: '0 auto',
-          lineHeight: '1.6',
-          textAlign: 'center'
+          lineHeight: '1.7',
+          textAlign: 'center',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontWeight: '400'
         }}>
-          Scan any object to discover its environmental impact, sustainability rating, and more using advanced AI technology.
+          Analyze objects to understand their environmental footprint and discover sustainable alternatives
         </p>
       </div>
 
@@ -419,26 +854,33 @@ export default function ScanPage() {
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '40px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-        marginBottom: '40px',
-        textAlign: 'center'
+        background: 'rgba(26, 47, 26, 0.4)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(143, 188, 143, 0.2)',
+        borderRadius: '20px',
+        padding: '48px',
+        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(143, 188, 143, 0.1)',
+        marginBottom: '60px',
+        textAlign: 'center',
+        position: 'relative',
+        zIndex: 10
       }}>
         
         {/* Camera Interface */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          marginBottom: '40px'
+          marginBottom: '48px'
         }}>
           <div style={{
-            backgroundColor: '#1f2937',
-            borderRadius: '16px',
-            padding: '20px',
+            background: 'rgba(15, 31, 15, 0.6)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(143, 188, 143, 0.15)',
+            borderRadius: '20px',
+            padding: '32px',
             maxWidth: '800px',
-            width: '100%'
+            width: '100%',
+            boxShadow: 'inset 0 2px 16px rgba(0, 0, 0, 0.2)'
           }}>
             <video
               ref={videoRef}
@@ -448,54 +890,71 @@ export default function ScanPage() {
                 width: '100%',
                 height: '400px',
                 objectFit: 'cover',
-                borderRadius: '12px',
-                backgroundColor: '#374151',
-                border: isCameraActive ? '3px solid #10b981' : '3px solid #6b7280',
-                display: isCameraActive ? 'block' : 'none'
+                borderRadius: '16px',
+                backgroundColor: 'rgba(31, 41, 31, 0.8)',
+                border: isCameraActive ? '2px solid rgba(143, 188, 143, 0.6)' : '2px solid rgba(139, 154, 139, 0.3)',
+                display: isCameraActive ? 'block' : 'none',
+                boxShadow: isCameraActive ? '0 8px 32px rgba(143, 188, 143, 0.2)' : 'none',
+                transition: 'all 0.3s ease'
               }}
             />
             {!isCameraActive && (
               <div style={{
                 width: '100%',
                 height: '400px',
-                backgroundColor: '#374151',
-                borderRadius: '12px',
-                border: '3px dashed #6b7280',
+                background: 'rgba(31, 41, 31, 0.6)',
+                borderRadius: '16px',
+                border: '2px dashed rgba(143, 188, 143, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexDirection: 'column'
               }}>
                 <div style={{
-                  width: '80px',
-                  height: '80px',
-                  backgroundColor: '#4b5563',
+                  width: '96px',
+                  height: '96px',
+                  background: 'rgba(82, 122, 82, 0.2)',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '20px'
+                  marginBottom: '24px',
+                  border: '1px solid rgba(143, 188, 143, 0.2)'
                 }}>
-                  <svg width="40" height="40" fill="#9ca3af" viewBox="0 0 20 20">
+                  <svg width="48" height="48" fill="rgba(143, 188, 143, 0.7)" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293L12.293 3.293A1 1 0 0011.586 3H8.414a1 1 0 00-.707.293L6.293 4.707A1 1 0 015.586 5H4z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <p style={{
-                  color: '#d1d5db',
-                  fontSize: '20px',
-                  fontWeight: 'bold',
-                  marginBottom: '8px'
+                  color: 'rgba(143, 188, 143, 0.9)',
+                  fontSize: '1.25rem',
+                  fontWeight: '500',
+                  marginBottom: '8px',
+                  fontFamily: 'Inter, system-ui, sans-serif'
                 }}>Camera Preview</p>
                 <p style={{
-                  color: '#9ca3af',
-                  fontSize: '16px'
-                }}>Click "Start Camera" to begin scanning</p>
+                  color: 'rgba(143, 188, 143, 0.6)',
+                  fontSize: '1rem',
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                  fontWeight: '400'
+                }}>Activate camera or upload an image to begin analysis</p>
               </div>
             )}
           </div>
         </div>
 
         <canvas ref={canvasRef} style={{ display: 'none' }} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleUploadScan(file);
+            e.target.value = '';
+          }}
+        />
 
         {/* Error Display */}
         {error && (
@@ -560,6 +1019,29 @@ export default function ScanPage() {
             </button>
           ) : (
             <>
+              <button
+                onClick={toggleCameraFacing}
+                aria-label="Switch camera"
+                style={{
+                  backgroundColor: '#0ea5e9',
+                  color: 'white',
+                  padding: '16px 24px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#0284c7';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#0ea5e9';
+                }}
+              >
+                {facingMode === 'environment' ? 'Use Front Camera' : 'Use Back Camera'}
+              </button>
               <button
                 onClick={handleScan}
                 disabled={loading}
@@ -649,6 +1131,30 @@ export default function ScanPage() {
               </button>
             </>
           )}
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Upload image for scanning"
+            style={{
+              backgroundColor: '#6b7280',
+              color: 'white',
+              padding: '16px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#4b5563';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#6b7280';
+            }}
+          >
+            Upload Image
+          </button>
         </div>
 
         {/* Loading State */}
@@ -686,55 +1192,355 @@ export default function ScanPage() {
 
       {/* Results Display */}
       {result && (
-        <ResultCard result={result} scanSuccess={scanSuccess} error={error} />
+        <>
+          <ResultCard result={result} scanSuccess={scanSuccess} error={error} />
+          <div style={{ textAlign: 'center', marginTop: '10px' }}>
+            <button
+              onClick={() => {
+                setResult(null);
+                setScanSuccess(true);
+                setError("");
+              }}
+              style={{
+                backgroundColor: 'transparent',
+                color: '#10b981',
+                border: '1px solid #10b981',
+                padding: '10px 16px',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              New Scan
+            </button>
+          </div>
+        </>
       )}
 
       {/* Action Buttons & Feedback: only show if scan was successful */}
       {scanSuccess && result && (
-        <>
-          <div style={{ margin: "32px 0", display: "flex", justifyContent: "center", gap: "18px" }}>
-            <button
-              onClick={() => handleAction("recycle")}
-              disabled={actionLoading || actionDone}
-              style={{ padding: "10px 24px", borderRadius: "6px", background: "#10b981", color: "#fff", fontWeight: "bold", border: "none", cursor: "pointer" }}
-            >Recycle</button>
-            <button
-              onClick={() => handleAction("sell")}
-              disabled={actionLoading || actionDone}
-              style={{ padding: "10px 24px", borderRadius: "6px", background: "#f59e42", color: "#fff", fontWeight: "bold", border: "none", cursor: "pointer" }}
-            >Sell</button>
-            <button
-              onClick={() => handleAction("donate")}
-              disabled={actionLoading || actionDone}
-              style={{ padding: "10px 24px", borderRadius: "6px", background: "#6366f1", color: "#fff", fontWeight: "bold", border: "none", cursor: "pointer" }}
-            >Donate</button>
-            <button
-              onClick={() => handleAction("share")}
-              disabled={actionLoading || actionDone}
-              style={{ padding: "10px 24px", borderRadius: "6px", background: "#3b82f6", color: "#fff", fontWeight: "bold", border: "none", cursor: "pointer" }}
-            >Share</button>
-          </div>
-          {/* Feedback after action */}
-          {actionFeedback && (
-            <div style={{ margin: "18px auto", maxWidth: "400px", background: "#e0f2fe", color: "#065f46", padding: "12px", fontWeight: "bold", borderRadius: "8px" }}>
-              {actionFeedback}
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+          {!actionDone ? (
+            <div style={{
+              backgroundColor: '#1f2937',
+              borderRadius: '20px',
+              padding: '40px',
+              textAlign: 'center',
+              border: '2px solid #6366f1',
+              boxShadow: '0 0 30px rgba(99, 102, 241, 0.3)'
+            }}>
+              <h3 style={{
+                fontSize: '28px',
+                fontWeight: 'bold',
+                color: '#6366f1',
+                marginBottom: '10px'
+              }}>
+                🎯 Choose Your Action
+              </h3>
+              <p style={{
+                fontSize: '16px',
+                color: '#9ca3af',
+                marginBottom: '30px',
+                maxWidth: '600px',
+                margin: '0 auto 30px'
+              }}>
+                What would you like to do with this item? Each action earns you different XP and helps the environment in unique ways!
+              </p>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '20px',
+                maxWidth: '800px',
+                margin: '0 auto'
+              }}>
+
+                {/* Recycle Button */}
+                <button
+                  onClick={() => handleAction("recycle")}
+                  disabled={actionLoading}
+                  style={{
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    cursor: actionLoading ? 'not-allowed' : 'pointer',
+                    opacity: actionLoading ? 0.6 : 1,
+                    transition: 'all 0.3s ease',
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!actionLoading) {
+                      e.target.style.transform = 'translateY(-4px)';
+                      e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!actionLoading) {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>♻️</div>
+                  <div>RECYCLE</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>
+                    Save the planet
+                  </div>
+                </button>
+
+                {/* Sell Button */}
+                <button
+                  onClick={() => handleAction("sell")}
+                  disabled={actionLoading}
+                  style={{
+                    backgroundColor: '#f59e0b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    cursor: actionLoading ? 'not-allowed' : 'pointer',
+                    opacity: actionLoading ? 0.6 : 1,
+                    transition: 'all 0.3s ease',
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!actionLoading) {
+                      e.target.style.transform = 'translateY(-4px)';
+                      e.target.style.boxShadow = '0 8px 25px rgba(245, 158, 11, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!actionLoading) {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>💰</div>
+                  <div>SELL</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>
+                    Earn ${result?.price?.estimated || 0}
+                  </div>
+                </button>
+
+                {/* Donate Button */}
+                <button
+                  onClick={() => handleAction("donate")}
+                  disabled={actionLoading}
+                  style={{
+                    backgroundColor: '#8b5cf6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    cursor: actionLoading ? 'not-allowed' : 'pointer',
+                    opacity: actionLoading ? 0.6 : 1,
+                    transition: 'all 0.3s ease',
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!actionLoading) {
+                      e.target.style.transform = 'translateY(-4px)';
+                      e.target.style.boxShadow = '0 8px 25px rgba(139, 92, 246, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!actionLoading) {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>❤️</div>
+                  <div>DONATE</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>
+                    Help others
+                  </div>
+                </button>
+
+                {/* Share Button */}
+                <button
+                  onClick={() => handleAction("share")}
+                  disabled={actionLoading}
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    cursor: actionLoading ? 'not-allowed' : 'pointer',
+                    opacity: actionLoading ? 0.6 : 1,
+                    transition: 'all 0.3s ease',
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!actionLoading) {
+                      e.target.style.transform = 'translateY(-4px)';
+                      e.target.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!actionLoading) {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>🌟</div>
+                  <div>SHARE</div>
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>
+                    Spread awareness
+                  </div>
+                </button>
+              </div>
+
+              {actionLoading && (
+                <div style={{
+                  marginTop: '30px',
+                  fontSize: '16px',
+                  color: '#6366f1'
+                }}>
+                  <div style={{
+                    display: 'inline-block',
+                    width: '20px',
+                    height: '20px',
+                    border: '3px solid #6366f1',
+                    borderTop: '3px solid transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    marginRight: '10px'
+                  }}></div>
+                  Processing your action...
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Success Message After Action */
+            <div style={{
+              backgroundColor: '#065f46',
+              borderRadius: '20px',
+              padding: '40px',
+              textAlign: 'center',
+              border: '2px solid #10b981',
+              boxShadow: '0 0 30px rgba(16, 185, 129, 0.3)'
+            }}>
+              <div style={{ fontSize: '60px', marginBottom: '20px' }}>🎉</div>
+              <h3 style={{
+                fontSize: '28px',
+                fontWeight: 'bold',
+                color: '#10b981',
+                marginBottom: '20px'
+              }}>
+                Action Completed Successfully!
+              </h3>
+
+              {actionFeedback && (
+                <div style={{
+                  fontSize: '18px',
+                  color: '#a7f3d0',
+                  marginBottom: '20px',
+                  padding: '16px',
+                  backgroundColor: '#064e3b',
+                  borderRadius: '12px',
+                  maxWidth: '600px',
+                  margin: '0 auto 20px'
+                }}>
+                  {actionFeedback}
+                </div>
+              )}
+
+              {actionResult && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                  gap: '16px',
+                  maxWidth: '500px',
+                  margin: '20px auto'
+                }}>
+                  <div style={{
+                    backgroundColor: '#064e3b',
+                    padding: '16px',
+                    borderRadius: '12px'
+                  }}>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
+                      {actionResult.level}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#a7f3d0' }}>Level</div>
+                  </div>
+                  <div style={{
+                    backgroundColor: '#064e3b',
+                    padding: '16px',
+                    borderRadius: '12px'
+                  }}>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
+                      {actionResult.xp}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#a7f3d0' }}>XP</div>
+                  </div>
+                  <div style={{
+                    backgroundColor: '#064e3b',
+                    padding: '16px',
+                    borderRadius: '12px'
+                  }}>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
+                      {actionResult.totalPoints}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#a7f3d0' }}>Points</div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => navigate('/dashboard')}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '16px 32px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  marginTop: '20px',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#059669';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#10b981';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                🏠 Return to Dashboard
+              </button>
             </div>
           )}
-          {/* Show XP/Points/Level after action */}
-          {actionResult && (
-            <div style={{ margin: "12px auto", maxWidth: "400px", color: "#334155", fontSize: "16px" }}>
-              Level: {actionResult.level} <br />
-              XP: {actionResult.xp} <br />
-              Total Points: {actionResult.totalPoints}
-            </div>
-          )}
-        </>
+        </div>
       )}
 
-      <style>{`
+      <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .spin-animation {
+          animation: spin 1s linear infinite;
         }
       `}</style>
     </div>
