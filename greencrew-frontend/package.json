@@ -9,6 +9,7 @@
     "autoprefixer": "^10.4.21",
     "cra-template-pwa": "2.0.0",
     "firebase": "^12.3.0",
+    "lucide-react": "^0.544.0",
     "postcss": "^8.5.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
