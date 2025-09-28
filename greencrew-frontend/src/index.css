@@ -1,195 +1,300 @@
-/*! tailwindcss v4.1.13 | MIT License | https://tailwindcss.com */
-@layer properties;
-*, ::after, ::before, ::backdrop, ::file-selector-button {
-  box-sizing: border-box;
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Lexend:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Arcade game UI base styles */
+body {
   margin: 0;
-  padding: 0;
-  border: 0 solid;
+  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #0a0a0a;
+  color: #ffffff;
+  overflow-x: hidden;
 }
-html, :host {
-  line-height: 1.5;
-  -webkit-text-size-adjust: 100%;
-  tab-size: 4;
-  font-family: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  font-feature-settings: normal;
-  font-variation-settings: normal;
-  -webkit-tap-highlight-color: transparent;
+
+code {
+  font-family: 'Courier New', monospace;
 }
-hr {
-  height: 0;
-  color: inherit;
-  border-top-width: 1px;
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
 }
-abbr:where([title]) {
-  -webkit-text-decoration: underline dotted;
-  text-decoration: underline dotted;
+
+::-webkit-scrollbar-track {
+  background: rgba(26, 26, 26, 0.5);
 }
-h1, h2, h3, h4, h5, h6 {
-  font-size: inherit;
-  font-weight: inherit;
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #22c55e, #3b82f6);
+  border-radius: 4px;
 }
-a {
-  color: inherit;
-  -webkit-text-decoration: inherit;
-  text-decoration: inherit;
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #16a34a, #2563eb);
 }
-b, strong {
-  font-weight: bolder;
-}
-code, kbd, samp, pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-feature-settings: normal;
-  font-variation-settings: normal;
-  font-size: 1em;
-}
-small {
-  font-size: 80%;
-}
-sub, sup {
-  font-size: 75%;
-  line-height: 0;
-  position: relative;
-  vertical-align: baseline;
-}
-sub {
-  bottom: -0.25em;
-}
-sup {
-  top: -0.5em;
-}
-table {
-  text-indent: 0;
-  border-color: inherit;
-  border-collapse: collapse;
-}
-:-moz-focusring {
-  outline: auto;
-}
-progress {
-  vertical-align: baseline;
-}
-summary {
-  display: list-item;
-}
-ol, ul, menu {
-  list-style: none;
-}
-img, svg, video, canvas, audio, iframe, embed, object {
-  display: block;
-  vertical-align: middle;
-}
-img, video {
-  max-width: 100%;
-  height: auto;
-}
-button, input, select, optgroup, textarea, ::file-selector-button {
-  font: inherit;
-  font-feature-settings: inherit;
-  font-variation-settings: inherit;
-  letter-spacing: inherit;
-  color: inherit;
-  border-radius: 0;
-  background-color: transparent;
-  opacity: 1;
-}
-:where(select:is([multiple], [size])) optgroup {
-  font-weight: bolder;
-}
-:where(select:is([multiple], [size])) optgroup option {
-  padding-inline-start: 20px;
-}
-::file-selector-button {
-  margin-inline-end: 4px;
-}
-::placeholder {
-  opacity: 1;
-}
-@supports (not (-webkit-appearance: -apple-pay-button))  or (contain-intrinsic-size: 1px) {
-  ::placeholder {
-    color: currentcolor;
-    @supports (color: color-mix(in lab, red, red)) {
-      color: color-mix(in oklab, currentcolor 50%, transparent);
-    }
+
+@layer components {
+  /* HUD Panel Components */
+  .hud-panel {
+    @apply bg-hud-panel backdrop-blur-hud border border-neon-green/30 rounded-hud shadow-2xl;
+    box-shadow:
+      0 0 20px rgba(34, 197, 94, 0.3),
+      inset 0 0 20px rgba(26, 26, 26, 0.8);
+  }
+
+  .hud-panel-blue {
+    @apply bg-hud-panel backdrop-blur-hud border border-neon-blue/30 rounded-hud shadow-2xl;
+    box-shadow:
+      0 0 20px rgba(59, 130, 246, 0.3),
+      inset 0 0 20px rgba(26, 26, 26, 0.8);
+  }
+
+  .hud-panel-purple {
+    @apply bg-hud-panel backdrop-blur-hud border border-neon-purple/30 rounded-hud shadow-2xl;
+    box-shadow:
+      0 0 20px rgba(147, 51, 234, 0.3),
+      inset 0 0 20px rgba(26, 26, 26, 0.8);
+  }
+
+  /* Neon Button Components */
+  .btn-neon {
+    @apply px-6 py-3 rounded-full font-arcade font-bold text-white border-2 transition-all duration-300 uppercase tracking-wider;
+    background: linear-gradient(145deg, rgba(26, 26, 26, 0.9), rgba(42, 42, 42, 0.9));
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-neon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent, currentColor, transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .btn-neon:hover::before {
+    opacity: 0.1;
+  }
+
+  .btn-neon-green {
+    @apply btn-neon border-neon-green text-neon-green;
+    box-shadow:
+      0 0 10px rgba(34, 197, 94, 0.5),
+      inset 0 0 10px rgba(34, 197, 94, 0.1);
+  }
+
+  .btn-neon-green:hover {
+    @apply animate-glow-pulse;
+    text-shadow: 0 0 10px currentColor;
+    box-shadow:
+      0 0 20px rgba(34, 197, 94, 0.8),
+      inset 0 0 20px rgba(34, 197, 94, 0.2);
+  }
+
+  .btn-neon-blue {
+    @apply btn-neon border-neon-blue text-neon-blue;
+    box-shadow:
+      0 0 10px rgba(59, 130, 246, 0.5),
+      inset 0 0 10px rgba(59, 130, 246, 0.1);
+  }
+
+  .btn-neon-blue:hover {
+    @apply animate-glow-pulse;
+    text-shadow: 0 0 10px currentColor;
+    box-shadow:
+      0 0 20px rgba(59, 130, 246, 0.8),
+      inset 0 0 20px rgba(59, 130, 246, 0.2);
+  }
+
+  .btn-neon-purple {
+    @apply btn-neon border-neon-purple text-neon-purple;
+    box-shadow:
+      0 0 10px rgba(147, 51, 234, 0.5),
+      inset 0 0 10px rgba(147, 51, 234, 0.1);
+  }
+
+  .btn-neon-purple:hover {
+    @apply animate-glow-pulse;
+    text-shadow: 0 0 10px currentColor;
+    box-shadow:
+      0 0 20px rgba(147, 51, 234, 0.8),
+      inset 0 0 20px rgba(147, 51, 234, 0.2);
+  }
+
+  /* Scan Button - Special Pokéball style */
+  .scan-button {
+    @apply w-32 h-32 rounded-full relative overflow-hidden cursor-pointer transition-all duration-300;
+    background: linear-gradient(145deg, #dc2626 0%, #ffffff 45%, #ffffff 55%, #dc2626 100%);
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      0 0 30px rgba(34, 197, 94, 0.6),
+      inset 0 0 20px rgba(255, 255, 255, 0.2);
+  }
+
+  .scan-button::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(220, 38, 38, 0.1));
+  }
+
+  .scan-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    border: 3px solid #ffffff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Floating XP Animation */
+  .floating-xp {
+    animation: floatUpGlow 3s ease-out forwards;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Neon Text Effects */
+  .text-neon-glow-green {
+    @apply text-neon-green;
+    text-shadow:
+      0 0 5px currentColor,
+      0 0 10px currentColor,
+      0 0 15px currentColor;
+  }
+
+  .text-neon-glow-blue {
+    @apply text-neon-blue;
+    text-shadow:
+      0 0 5px currentColor,
+      0 0 10px currentColor,
+      0 0 15px currentColor;
+  }
+
+  .text-neon-glow-purple {
+    @apply text-neon-purple;
+    text-shadow:
+      0 0 5px currentColor,
+      0 0 10px currentColor,
+      0 0 15px currentColor;
+  }
+
+  .text-neon-glow-yellow {
+    @apply text-neon-yellow;
+    text-shadow:
+      0 0 5px currentColor,
+      0 0 10px currentColor,
+      0 0 15px currentColor;
+  }
+
+  /* Grid Background */
+  .arcade-grid {
+    background-image:
+      linear-gradient(rgba(34, 197, 94, 0.2) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34, 197, 94, 0.2) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: gridMove 20s linear infinite;
+  }
+
+  /* HUD Status Bar */
+  .status-bar {
+    @apply hud-panel px-4 py-2 flex items-center justify-between text-neon-green font-arcade text-sm;
   }
 }
-textarea {
-  resize: vertical;
-}
-::-webkit-search-decoration {
-  -webkit-appearance: none;
-}
-::-webkit-date-and-time-value {
-  min-height: 1lh;
-  text-align: inherit;
-}
-::-webkit-datetime-edit {
-  display: inline-flex;
-}
-::-webkit-datetime-edit-fields-wrapper {
-  padding: 0;
-}
-::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
-  padding-block: 0;
-}
-::-webkit-calendar-picker-indicator {
-  line-height: 1;
-}
-:-moz-ui-invalid {
-  box-shadow: none;
-}
-button, input:where([type='button'], [type='reset'], [type='submit']), ::file-selector-button {
-  appearance: button;
-}
-::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
-  height: auto;
-}
-[hidden]:where(:not([hidden='until-found'])) {
-  display: none !important;
-}
-.flex {
-  display: flex;
-}
-.min-h-screen {
-  min-height: 100vh;
-}
-.w-full {
-  width: 100%;
-}
-.min-w-full {
-  min-width: 100%;
-}
-.flex-col {
-  flex-direction: column;
-}
-.items-center {
-  align-items: center;
-}
-.justify-center {
-  justify-content: center;
-}
-.border {
-  border-style: var(--tw-border-style);
-  border-width: 1px;
-}
-.bg-gradient-to-br {
-  --tw-gradient-position: to bottom right in oklab;
-  background-image: linear-gradient(var(--tw-gradient-stops));
-}
-.text-center {
-  text-align: center;
-}
-.underline {
-  text-decoration-line: underline;
-}
-@property --tw-border-style {
-  syntax: "*";
-  inherits: false;
-  initial-value: solid;
-}
-@layer properties {
-  @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
-    *, ::before, ::after, ::backdrop {
-      --tw-border-style: solid;
-    }
+
+/* Custom Keyframe Animations */
+@keyframes floatUpGlow {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    text-shadow: 0 0 10px currentColor;
   }
+  50% {
+    opacity: 1;
+    transform: translateY(-40px) scale(1.3);
+    text-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-80px) scale(0.8);
+    text-shadow: 0 0 5px currentColor;
+  }
+}
+
+/* XP Ring SVG Animations */
+.xp-ring-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawXPRing 2s ease-out forwards;
+}
+
+@keyframes drawXPRing {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Mascot Idle Animation */
+.mascot-float {
+  animation: mascotFloat 4s ease-in-out infinite;
+}
+
+@keyframes mascotFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) rotate(1deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(-1deg);
+  }
+}
+
+/* Leaderboard Row Hover Effect */
+.leaderboard-row {
+  @apply transition-all duration-300;
+}
+
+.leaderboard-row:hover {
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1));
+  box-shadow:
+    0 0 20px rgba(34, 197, 94, 0.3),
+    inset 0 0 20px rgba(34, 197, 94, 0.1);
+  transform: translateX(5px);
+}
+
+/* Badge Glow Effects */
+.badge-earned {
+  @apply transition-all duration-300;
+  filter: drop-shadow(0 0 10px currentColor);
+}
+
+.badge-earned:hover {
+  filter: drop-shadow(0 0 20px currentColor);
+  transform: scale(1.1);
+}
+
+.badge-locked {
+  @apply grayscale opacity-40 transition-all duration-300;
+}
+
+.badge-locked:hover {
+  @apply opacity-60;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
 }
