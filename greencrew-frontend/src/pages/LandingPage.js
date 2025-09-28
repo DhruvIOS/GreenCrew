@@ -61,9 +61,11 @@ export default function LandingPage() {
           }}>GreenCrew</span>
         </div>
         <div style={{ display: "flex", gap: "32px", fontSize: "18px" }}>
-          {["How It Works", "Badges", "Rewards", "Leaderboard"].map((link, idx) => (
+          {["How It Works", "Badges", "Rewards"].map((link, idx) => (
             <a key={idx} href={`#${link.toLowerCase().replace(/\s/g, "")}`} style={{ textDecoration: "none", color: "#eee", fontWeight: "500" }}>{link}</a>
           ))}
+          <a href="/leaderboard" style={{ textDecoration: "none", color: "#eee", fontWeight: "500" }}>Leaderboard</a>
+          <a href="/about" style={{ textDecoration: "none", color: "#eee", fontWeight: "500" }}>About</a>
           <a href="/login" style={{
             background: "linear-gradient(90deg,#10b981,#60a5fa)",
             color: "white",
