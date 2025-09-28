@@ -28,35 +28,27 @@ export function AuthProvider({ children }) {
     checkRedirectResult();
   }, []);
 
-  // Clear auth error on mount to start fresh
-  useEffect(() => {
-    setAuthError(null);
-  }, []);
+  useEffect(() => { setAuthError(null); }, []);
 
-  // Monitor Firebase auth state changes
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
       if (firebaseUser) {
-        // User is signed in with Firebase
         const userData = {
           uid: firebaseUser.uid,
           name: firebaseUser.displayName,
           email: firebaseUser.email,
           photoURL: firebaseUser.photoURL,
-          level: 1, // Default values
+          level: 1,
           xp: 0,
           totalPoints: 0,
           dormId: null
         };
         setUser(userData);
-        
-        // Get and store the token
         firebaseUser.getIdToken().then((idToken) => {
           localStorage.setItem('token', idToken);
           setToken(idToken);
         });
       } else {
-        // User is signed out
         setUser(null);
         setToken(null);
         localStorage.removeItem('token');
@@ -67,13 +59,27 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
+  // --- ADD THIS: refreshUser ---
+  const refreshUser = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/player/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(prev => ({ ...prev, ...data.player }));
+      }
+    } catch (err) {
+      console.error("Failed to refresh user profile", err);
+    }
+  };
+
   const googleSignIn = async () => {
     setAuthLoading(true);
     setAuthError(null);
     const provider = new GoogleAuthProvider();
-    
     try {
-      // First, try popup authentication
       const result = await signInWithPopup(auth, provider);
       const firebaseToken = await result.user.getIdToken();
       localStorage.setItem("token", firebaseToken);
@@ -81,19 +87,12 @@ export function AuthProvider({ children }) {
       setAuthLoading(false);
     } catch (error) {
       console.error("Popup authentication failed:", error);
-      
-      // If popup fails (likely due to COOP), fall back to redirect
       if (error.code === 'auth/popup-blocked' || 
           error.code === 'auth/popup-closed-by-user' ||
           error.message.includes('Cross-Origin-Opener-Policy')) {
-        
-        console.log("Falling back to redirect authentication...");
         try {
           await signInWithRedirect(auth, provider);
-          // Note: The redirect will handle the rest, and the result will be
-          // caught by the useEffect with getRedirectResult
         } catch (redirectError) {
-          console.error("Redirect authentication failed:", redirectError);
           setAuthError(redirectError.message);
           setAuthLoading(false);
         }
@@ -121,7 +120,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, authLoading, authError, googleSignIn, logout, clearAuth }}>
+    <AuthContext.Provider value={{ user, token, loading, authLoading, authError, googleSignIn, logout, clearAuth, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

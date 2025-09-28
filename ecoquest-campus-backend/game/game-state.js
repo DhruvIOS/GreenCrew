@@ -34,26 +34,48 @@ class GameStateManager {
     };
   }
 
-  async getPlayerState(userId) {
+  // Updated to accept name/email and PATCH missing info for existing users
+  async getPlayerState(userId, name = null, email = null) {
     try {
       const db = getDB();
-      const playerDoc = await db.collection('players').doc(userId).get();
-      
+      const playerRef = db.collection('players').doc(userId);
+      const playerDoc = await playerRef.get();
+
       if (!playerDoc.exists) {
-        const newPlayer = this.createNewPlayer();
-        await db.collection('players').doc(userId).set(newPlayer);
+        const newPlayer = this.createNewPlayer(name, email);
+        await playerRef.set(newPlayer);
         return newPlayer;
       }
-      
-      return playerDoc.data();
+
+      // PATCH: If player exists but no name/email, update it!
+      const playerData = playerDoc.data();
+      let patchNeeded = false;
+      let patchData = {};
+      if (!playerData.name && name) {
+        patchData.name = name;
+        patchNeeded = true;
+      }
+      if (!playerData.email && email) {
+        patchData.email = email;
+        patchNeeded = true;
+      }
+      if (patchNeeded) {
+        await playerRef.set(patchData, { merge: true });
+        return { ...playerData, ...patchData };
+      }
+
+      return playerData;
     } catch (error) {
       console.error('Error getting player state:', error);
       throw error;
     }
   }
 
-  createNewPlayer() {
+  // Accept name and email for new players
+  createNewPlayer(name = null, email = null) {
     return {
+      name: name,
+      email: email,
       level: 1,
       xp: 0,
       totalPoints: 0,
@@ -78,15 +100,14 @@ class GameStateManager {
     try {
       const db = getDB();
       const playerRef = db.collection('players').doc(userId);
-      
+
       return await db.runTransaction(async (transaction) => {
         const playerDoc = await transaction.get(playerRef);
-        const playerData = playerDoc.data();
-        
-        // Calculate points earned
+        let playerData = playerDoc.exists ? playerDoc.data() : this.createNewPlayer();
+
+        const xpEarned = this.calculateXPEarned(scanResult, action, playerData);
         const pointsEarned = this.calculatePoints(scanResult, action, playerData);
-        
-        // Update stats
+
         const updatedStats = {
           ...playerData.stats,
           scanCount: playerData.stats.scanCount + 1,
@@ -95,34 +116,31 @@ class GameStateManager {
           lastScanDate: new Date()
         };
 
-        // Update action-specific stats
         if (action === 'recycle') updatedStats.recycleCount = playerData.stats.recycleCount + 1;
         if (action === 'sell') updatedStats.sellCount = playerData.stats.sellCount + 1;
         if (action === 'donate') updatedStats.donateCount = playerData.stats.donateCount + 1;
 
-        // Calculate streak
         updatedStats.streakDays = this.calculateStreak(playerData.stats.lastScanDate);
 
-        // Calculate new level
-        const newXP = playerData.xp + pointsEarned;
+        const newXP = (playerData.xp || 0) + xpEarned;
         const newLevel = this.calculateLevel(newXP);
-        
-        // Check for new achievements
+        const newTotalPoints = (playerData.totalPoints || 0) + pointsEarned;
         const newAchievements = this.checkAchievements(playerData, updatedStats);
-        
+
         const updatedPlayer = {
           ...playerData,
           xp: newXP,
           level: newLevel,
-          totalPoints: playerData.totalPoints + pointsEarned,
+          totalPoints: newTotalPoints,
           stats: updatedStats,
           achievements: [...new Set([...playerData.achievements, ...newAchievements])],
           updatedAt: new Date()
         };
-        
-        transaction.update(playerRef, updatedPlayer);
-        
+
+        transaction.set(playerRef, updatedPlayer, { merge: true });
+
         return {
+          xpEarned,
           pointsEarned,
           newLevel: newLevel > playerData.level,
           newAchievements,
@@ -144,65 +162,69 @@ class GameStateManager {
       'donate': 40,
       'share': 20
     };
-    
     const points = basePoints[action] || basePoints['scan'];
-    const levelMultiplier = 1 + (playerData.level * 0.1);
-    const environmentalBonus = scanResult.environmental?.carbonSaved > 1 ? 1.5 : 1.0;
-    const streakBonus = 1 + (playerData.stats.streakDays * 0.05); // 5% bonus per streak day
-    
+    const levelMultiplier = 1 + (playerData.level * 0.05);
+    const environmentalBonus = (scanResult.environmental?.carbonSaved > 2) ? 1.25 : 1.0;
+    const streakBonus = 1 + (playerData.stats.streakDays * 0.03);
+
     return Math.floor(points * levelMultiplier * environmentalBonus * streakBonus);
   }
 
+  calculateXPEarned(scanResult, action, playerData) {
+    const baseXP = {
+      'scan': 15,
+      'recycle': 20,
+      'sell': 25,
+      'donate': 18,
+      'share': 10
+    };
+    const xp = baseXP[action] || baseXP['scan'];
+    const environmentalBonus = (scanResult.environmental?.carbonSaved > 2) ? 1.5 : 1.0;
+    const streakBonus = 1 + (playerData.stats.streakDays * 0.05);
+
+    return Math.floor(xp * environmentalBonus * streakBonus);
+  }
+
   calculateLevel(xp) {
-    // Level formula: square root progression
-    return Math.floor(Math.sqrt(xp / 100)) + 1;
+    return Math.floor(Math.sqrt(xp / 120)) + 1;
   }
 
   calculateStreak(lastScanDate) {
     if (!lastScanDate) return 1;
-    
     const now = new Date();
     const lastScan = new Date(lastScanDate);
     const diffHours = (now - lastScan) / (1000 * 60 * 60);
-    
-    // If scanned within 48 hours, maintain streak
     if (diffHours <= 48) {
       return Math.floor(diffHours / 24) + 1;
     }
-    return 1; // Reset streak
+    return 1;
   }
 
   checkAchievements(oldPlayerData, newStats) {
     const newAchievements = [];
-    
     for (const [achievementId, achievement] of Object.entries(this.achievements)) {
       if (oldPlayerData.achievements.includes(achievementId)) continue;
-      
       const req = achievement.requirement;
       let achieved = false;
-      
       if (req.scanCount && newStats.scanCount >= req.scanCount) achieved = true;
       if (req.carbonSaved && newStats.carbonSaved >= req.carbonSaved) achieved = true;
       if (req.recycleCount && newStats.recycleCount >= req.recycleCount) achieved = true;
-      
       if (achieved) {
         newAchievements.push(achievementId);
       }
     }
-    
     return newAchievements;
   }
 
   getXPToNextLevel(currentXP) {
     const currentLevel = this.calculateLevel(currentXP);
-    const nextLevelXP = Math.pow(currentLevel, 2) * 100;
+    const nextLevelXP = Math.pow(currentLevel, 2) * 120;
     return Math.max(0, nextLevelXP - currentXP);
   }
 
   getAchievementProgress(playerData, achievement) {
     const req = achievement.requirement;
     const stats = playerData.stats;
-    
     if (req.scanCount) {
       return Math.min(100, Math.round((stats.scanCount / req.scanCount) * 100));
     }
@@ -212,11 +234,8 @@ class GameStateManager {
     if (req.recycleCount) {
       return Math.min(100, Math.round((stats.recycleCount / req.recycleCount) * 100));
     }
-    
     return 0;
   }
 }
-
-
 
 module.exports = new GameStateManager();
