@@ -169,9 +169,39 @@ const CategoryCard = ({ title, data }) => {
   );
 };
 
-const ResultCard = ({ result }) => {
-  if (!result || typeof result !== "object") return null;
+const ErrorResultCard = ({ error, result }) => (
+  <div style={{
+    maxWidth: '700px',
+    margin: '40px auto',
+    padding: '32px 24px',
+    backgroundColor: '#fee2e2',
+    border: '2px solid #fecaca',
+    borderRadius: '12px',
+    color: '#dc2626',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: '20px'
+  }}>
+    <div>
+      <svg width="36" height="36" fill="currentColor" viewBox="0 0 20 20" style={{ marginBottom: '12px' }}>
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-9V6a1 1 0 112 0v3a1 1 0 01-2 0zm1 5a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
+      </svg>
+      <div>{error || "Scan failed. Try again!"}</div>
+      {result?.class && (
+        <div style={{ marginTop: '18px', color: '#6b7280', fontWeight: 'normal', fontSize: '16px' }}>
+          <strong>Detected:</strong> {result.class} &nbsp; (confidence: {result.confidence})
+        </div>
+      )}
+    </div>
+  </div>
+);
 
+const ResultCard = ({ result, scanSuccess, error }) => {
+  if (!scanSuccess) {
+    // Show error card ONLY if scan failed
+    return <ErrorResultCard error={error} result={result} />;
+  }
+  if (!result || typeof result !== "object") return null;
   const categories = categorizeKeys(result);
 
   return (
@@ -200,7 +230,6 @@ const ResultCard = ({ result }) => {
           borderRadius: '2px'
         }}></div>
       </div>
-      
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
@@ -219,8 +248,9 @@ const ResultCard = ({ result }) => {
 export default function ScanPage() {
   const { token, refreshUser } = useAuth();
   const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [scanSuccess, setScanSuccess] = useState(true);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [stream, setStream] = useState(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -297,11 +327,14 @@ export default function ScanPage() {
         body: formData,
       });
       const data = await res.json();
+      setScanSuccess(data.success);
       setResult(data.result || data.error || data);
+      setError(data.success ? "" : data.error || "Scan failed.");
       setActionFeedback("");
       setActionResult(null);
     } catch (err) {
       setError("Scan failed.");
+      setScanSuccess(false);
       console.error("Scan error:", err);
     } finally {
       setLoading(false);
@@ -653,10 +686,12 @@ export default function ScanPage() {
 
       {/* Results Display */}
       {result && (
-        <>
-          <ResultCard result={result} />
+        <ResultCard result={result} scanSuccess={scanSuccess} error={error} />
+      )}
 
-          {/* Action Buttons */}
+      {/* Action Buttons & Feedback: only show if scan was successful */}
+      {scanSuccess && result && (
+        <>
           <div style={{ margin: "32px 0", display: "flex", justifyContent: "center", gap: "18px" }}>
             <button
               onClick={() => handleAction("recycle")}
