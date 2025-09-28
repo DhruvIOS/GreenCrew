@@ -67,8 +67,26 @@ router.post('/', authenticateUser, upload.single('image'), async (req, res) => {
       });
     }
 
+    // Pick top detection by score
     const mainDetection = detections.reduce((prev, current) => (prev.score > current.score) ? prev : current);
 
+    // FILTER: Block unwanted classes (robust, trims and lowercases)
+    const unwantedClasses = ["person", "human", "face"];
+    const detectedClass = (mainDetection.class || "").toLowerCase().trim();
+    console.log("Detected class:", detectedClass); // LOG IT!
+    if (unwantedClasses.includes(detectedClass)) {
+      return res.status(200).json({
+        success: false,
+        error: "Please scan a real object, not a person.",
+        result: {
+          class: mainDetection.class,
+          confidence: mainDetection.confidence,
+        },
+        code: "INVALID_OBJECT"
+      });
+    }
+
+    // Get price and environmental analysis
     const priceAnalysis = mlModels.predictPrice(
       mainDetection.class,
       req.body.condition || 'good',
