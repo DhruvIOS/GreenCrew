@@ -1,20 +1,23 @@
-const admin = require("firebase-admin");
-const path = require("path");
+const admin = require('firebase-admin');
+let db, auth;
 
-function initializeFirebase() {
-  if (admin.apps.length === 0) {
+async function initializeFirebase() {
+  try {
+    const serviceAccount = require('./serviceAccount.json');
+    
     admin.initializeApp({
-      credential: admin.credential.cert(
-        require(path.join(__dirname, "serverAccount.json"))
-        // Or use process.env.GOOGLE_APPLICATION_CREDENTIALS
-      ),
-      databaseURL: process.env.FIREBASE_DATABASE_URL
+      credential: admin.credential.cert(serviceAccount)
     });
+
+    db = admin.firestore();
+    auth = admin.auth();
+    
+    console.log('🔥 Firebase initialized');
+    return { db, auth };
+  } catch (error) {
+    console.log('⚠️ Firebase not configured yet');
+    return null;
   }
 }
 
-function getDB() {
-  return admin.firestore();
-}
-
-module.exports = { initializeFirebase, getDB, admin };
+module.exports = { initializeFirebase, getDB: () => db, getAuth: () => auth };
