@@ -1,9 +1,16 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
+
+  useEffect(() => {
+    // Always get latest stats when dashboard mounts
+    refreshUser();
+    // eslint-disable-next-line
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-400 to-blue-500 flex flex-col items-center justify-center">
       <div className="bg-white p-6 rounded shadow w-full max-w-lg text-center mb-4">

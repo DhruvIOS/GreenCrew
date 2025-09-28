@@ -21,9 +21,7 @@ const categorizeKeys = (obj) => {
   Object.keys(categories).forEach((cat) => (result[cat] = {}));
 
   for (const key in obj) {
-    // Skip details fields
     if (["id", "scan_id", "timestamp"].includes(key)) continue;
-    
     let found = false;
     for (const cat in categories) {
       if (categories[cat].includes(key)) {
@@ -219,12 +217,16 @@ const ResultCard = ({ result }) => {
 };
 
 export default function ScanPage() {
-  const { token } = useAuth();
+  const { token, refreshUser } = useAuth();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [stream, setStream] = useState(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState("");
+  const [actionResult, setActionResult] = useState(null);
+  const [actionDone, setActionDone] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -276,6 +278,7 @@ export default function ScanPage() {
     setError("");
     setLoading(true);
     setResult(null);
+    setActionDone(false);
 
     try {
       const photoBlob = await capturePhoto();
@@ -295,11 +298,51 @@ export default function ScanPage() {
       });
       const data = await res.json();
       setResult(data.result || data.error || data);
+      setActionFeedback("");
+      setActionResult(null);
     } catch (err) {
       setError("Scan failed.");
       console.error("Scan error:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle action (Recycle/Sell/Donate/Share)
+  const handleAction = async (actionType) => {
+    if (!result) return;
+    setActionLoading(true);
+    setActionFeedback("");
+    setActionResult(null);
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/scan/action`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          scanId: result.id || ("scan_"+Date.now()),
+          action: actionType,
+          scanResult: result,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionFeedback(
+          `Action: ${actionType.charAt(0).toUpperCase() + actionType.slice(1)} successful! Points earned: ${data.pointsEarned}. XP: ${data.playerState.xp}. Level: ${data.playerState.level}`
+        );
+        setActionResult(data.playerState);
+        setActionDone(true); // Disable buttons after first successful action
+        refreshUser(); // Update dashboard after action
+      } else {
+        setActionFeedback(data.error || "Action failed.");
+      }
+    } catch (err) {
+      setActionFeedback("Action failed (network or server error).");
+      console.error("Action error:", err);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -609,7 +652,49 @@ export default function ScanPage() {
       </div>
 
       {/* Results Display */}
-      {result && <ResultCard result={result} />}
+      {result && (
+        <>
+          <ResultCard result={result} />
+
+          {/* Action Buttons */}
+          <div style={{ margin: "32px 0", display: "flex", justifyContent: "center", gap: "18px" }}>
+            <button
+              onClick={() => handleAction("recycle")}
+              disabled={actionLoading || actionDone}
+              style={{ padding: "10px 24px", borderRadius: "6px", background: "#10b981", color: "#fff", fontWeight: "bold", border: "none", cursor: "pointer" }}
+            >Recycle</button>
+            <button
+              onClick={() => handleAction("sell")}
+              disabled={actionLoading || actionDone}
+              style={{ padding: "10px 24px", borderRadius: "6px", background: "#f59e42", color: "#fff", fontWeight: "bold", border: "none", cursor: "pointer" }}
+            >Sell</button>
+            <button
+              onClick={() => handleAction("donate")}
+              disabled={actionLoading || actionDone}
+              style={{ padding: "10px 24px", borderRadius: "6px", background: "#6366f1", color: "#fff", fontWeight: "bold", border: "none", cursor: "pointer" }}
+            >Donate</button>
+            <button
+              onClick={() => handleAction("share")}
+              disabled={actionLoading || actionDone}
+              style={{ padding: "10px 24px", borderRadius: "6px", background: "#3b82f6", color: "#fff", fontWeight: "bold", border: "none", cursor: "pointer" }}
+            >Share</button>
+          </div>
+          {/* Feedback after action */}
+          {actionFeedback && (
+            <div style={{ margin: "18px auto", maxWidth: "400px", background: "#e0f2fe", color: "#065f46", padding: "12px", fontWeight: "bold", borderRadius: "8px" }}>
+              {actionFeedback}
+            </div>
+          )}
+          {/* Show XP/Points/Level after action */}
+          {actionResult && (
+            <div style={{ margin: "12px auto", maxWidth: "400px", color: "#334155", fontSize: "16px" }}>
+              Level: {actionResult.level} <br />
+              XP: {actionResult.xp} <br />
+              Total Points: {actionResult.totalPoints}
+            </div>
+          )}
+        </>
+      )}
 
       <style>{`
         @keyframes spin {
