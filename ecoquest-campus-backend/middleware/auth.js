@@ -1,6 +1,4 @@
-// middleware/authenticateUser.js
-const { auth } = require("../config/firebase-config"); // Firebase Admin SDK instance
-const { getAuth } = require("firebase-admin/auth"); // for fetching user record
+const { admin } = require("../config/firebase-config"); // Import the initialized admin SDK
 
 async function authenticateUser(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -13,15 +11,15 @@ async function authenticateUser(req, res, next) {
 
   try {
     // Verify ID token
-    const decodedToken = await auth.verifyIdToken(idToken);
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
 
-    // Fetch full user record (this includes displayName if available)
-    const userRecord = await getAuth().getUser(decodedToken.uid);
+    // Fetch full user record (includes displayName if available)
+    const userRecord = await admin.auth().getUser(decodedToken.uid);
 
     req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email,
-      name: userRecord.displayName || decodedToken.email, // fallback if no name
+      name: userRecord.displayName || decodedToken.email,
     };
 
     next();
