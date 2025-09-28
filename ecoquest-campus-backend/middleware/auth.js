@@ -1,5 +1,5 @@
 // middleware/authenticateUser.js
-const { auth } = require("../firebase-config"); // Firebase Admin SDK instance
+const { auth } = require("../config/firebase-config"); // Firebase Admin SDK instance
 const { getAuth } = require("firebase-admin/auth"); // for fetching user record
 
 async function authenticateUser(req, res, next) {
