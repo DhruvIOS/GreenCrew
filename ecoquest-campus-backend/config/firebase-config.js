@@ -3,7 +3,7 @@ let db, auth;
 
 async function initializeFirebase() {
   try {
-    const serviceAccount = require('./serviceAccount.json');
+    const serviceAccount = require('/etc/secrets/serviceAccount.json');
     
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
